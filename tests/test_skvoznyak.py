@@ -1,4 +1,4 @@
-"""SPEC v0.1. Модульные тесты AAA."""
+"""SPEC v0.1.2. Модульные тесты AAA, включая TC-41 и TC-42 по ревью C."""
 from tests.helpers import *
 
 
@@ -328,6 +328,38 @@ class TestSkvoznyak(ContractCase):
         self.reject(d,TypeError,lambda: d.move(0,None))
         b=snapshot(d); self.number(d.calculate_energy(1,"air"),1); self.assertEqual(snapshot(d),b)
         d.land(); self.reject(d,SkvoznyakNotAirborne,lambda: d.move(1,"air"))
+
+    def test_tc41_attributes_cannot_be_deleted(self):
+        """TC-41. Удаление публичных атрибутов запрещено. SPEC 3.3; C-1."""
+        for airborne in (False, True):
+            for attribute in ATTRS:
+                with self.subTest(is_airborne=airborne, attribute=attribute):
+                    # Arrange: отдельный объект для каждой попытки удаления.
+                    d = flying() if airborne else make()
+
+                    # Act / Assert: AttributeError и полный снимок без изменений.
+                    self.reject(d, AttributeError, lambda: delattr(d, attribute))
+
+    def test_tc42_move_preserves_other_attributes(self):
+        """TC-42. Движение меняет только энергию и путь. SPEC 3.0, 3.4.4; C-2."""
+        for max_speed, broken, hours in ((50, 0, 0.5), (12, 0, 10 / 12), (50, 3, 1.0)):
+            with self.subTest(max_speed=max_speed, broken=broken):
+                # Arrange: три варианта TC-11, подготовленные публичными методами.
+                d = make(mass_kg=150, max_speed_kmh=max_speed)
+                damage(d, broken)
+                d.deploy_sails()
+                d.takeoff()
+                expected = snapshot(d)
+                expected["energy"] -= 10.0
+                expected["position_km"] += 10.0
+
+                # Act.
+                actual_hours = d.move(10, "air")
+
+                # Assert: время, полный снимок и типы всех публичных атрибутов.
+                self.number(actual_hours, hours)
+                self.assertEqual(snapshot(d), expected)
+                self.check(d, **expected)
 
 
 if __name__ == "__main__":

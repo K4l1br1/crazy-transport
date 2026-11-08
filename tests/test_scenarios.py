@@ -1,4 +1,4 @@
-"""SPEC v0.1. Сценарные тесты GWT."""
+"""SPEC v0.1.2. Сценарные тесты GWT."""
 from tests.helpers import *
 
 
